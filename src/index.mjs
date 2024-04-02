@@ -1,4 +1,15 @@
-import express from 'express'
+import express, { request, response } from 'express'
+import {
+  query,
+  validationResult,
+  body,
+  matchedData,
+  checkSchema,
+} from 'express-validator'
+import {
+  createUserValidationSchema,
+  getUserValidationsSchema,
+} from './utils/validationSchemas.mjs'
 
 const app = express()
 
@@ -30,7 +41,9 @@ const mockUsers = [
 ]
 
 // Querry Params filtering
-app.get('/api/users', (req, res) => {
+app.get('/api/users', checkSchema(getUserValidationsSchema), (req, res) => {
+  const result = validationResult(req)
+  console.log(result)
   const {
     query: { filter, value },
   } = req
@@ -47,9 +60,13 @@ app.get('/api/user/:id', resolveIndexByUserId, (req, res) => {
   return res.status(200).send(findUser)
 })
 
-app.post('/api/users', (req, res) => {
-  const { body } = req
-  const newUser = { id: mockUsers[mockUsers.length - 1].id + 1, ...body }
+app.post('/api/users', checkSchema(createUserValidationSchema), (req, res) => {
+  const result = validationResult(req)
+
+  if (!result.isEmpty()) return res.status(400).send({ errors: result.array() })
+
+  const data = matchedData(req)
+  const newUser = { id: mockUsers[mockUsers.length - 1].id + 1, ...data }
   mockUsers.push(newUser)
   return res.status(201).send(newUser)
 })
